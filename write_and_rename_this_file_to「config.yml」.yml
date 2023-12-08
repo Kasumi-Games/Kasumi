@@ -1,0 +1,21 @@
+bot:
+  admin:
+    - platform: 'qq'
+      admin: []
+  prefix: ['/']  #  指令前缀
+  rm_at: true  # 是否删除 @ 机器人的消息
+
+# sever 配置
+server:
+  reload: true  # reload 及时热重载
+  host: '127.0.0.1'  # 本地地址
+  local_port: '17230'  # 本地端口
+  webui: true  # 是否开启 webui # 目前没有
+
+# 账号连接配置 ws
+connections:
+  - self_ids: [ 'bot_self_id' ]   # 平台账号，可填写一个/多个
+    address: 'xxxxx:5140/satori/v1'   # 主机地址 与 path路径 与 版本
+    token: 'xxxxxxxx' # 由前端提供
+
+
