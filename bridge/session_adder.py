@@ -20,9 +20,8 @@ class SessionExtension(Session):
         self.command: Optional[Command] = None
         if '' == self.message.content and self.type == 'message-created':
             msg = "".join(element['attrs']['content'] for element in self.data['message']['elements'] if element['type'] == 'text')
-            self.message.content = msg.replace(' ', '', 1) if msg.startswith(' ') else msg
+            self.message.content = msg.strip()  # 空格不需要了
         self.seq = 0  # 将 seq 定义为实例属性
-
 
     def send(self, message_content: str):
         # 使用实例属性时，直接通过 self 访问
