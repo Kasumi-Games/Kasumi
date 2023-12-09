@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from bestdori import songs
 from bestdori.charts import Chart
 
-from bridge.tomorin import on_activator, on_event, h
+from bridge.tomorin import on_activator, on_event, h, rm_all_xml, rm_perfix
 from bridge.session_adder import SessionExtension
 
 from .BanGDreamChartRender import render
@@ -181,11 +181,12 @@ def handle_answer(session: SessionExtension):
     global guess_chart_context
     global nickname_song
     global song_data
+    msg_pure = rm_all_xml(session.message.content)
 
     if session.channel.id not in guess_chart_context:
         return None
 
-    if session.message.content.strip().startswith(("猜谱面", "cpm")):
+    if msg_pure.startswith(("猜谱面", "cpm")):
         return None
 
     correct_chart_id: str = guess_chart_context[session.channel.id]["chart_id"]
@@ -194,7 +195,7 @@ def handle_answer(session: SessionExtension):
         diff_num[diff]
     ]["playLevel"]
 
-    if session.message.content.strip() in ["bzd", "不知道", "结束猜谱", "结束猜谱面"]:
+    if msg_pure in ["bzd", "不知道", "结束猜谱", "结束猜谱面"]:
         session.send(
             f"要再试一次吗？\n谱面：{nickname_song[correct_chart_id][0]} "
             f"{diff.upper()} LV.{level}"
@@ -202,7 +203,7 @@ def handle_answer(session: SessionExtension):
         guess_chart_context.pop(session.channel.id)
         return None
 
-    if session.message.content.strip() in ["提示", "给点提示"]:
+    if msg_pure in ["提示", "给点提示"]:
         if not guess_chart_context[session.channel.id]["prompt"]["level"]:
             session.send(f"这首曲子是 {level} 级的哦")
             guess_chart_context[session.channel.id]["prompt"]["level"] = True
@@ -213,14 +214,14 @@ def handle_answer(session: SessionExtension):
             session.send("已经没有提示啦")
         return None
 
-    print(guess_chart_context)
+    # print(guess_chart_context)
 
-    if not session.message.content.strip().isdigit():
-        guessed_chart_id = fuzzy_match(session.message.content.strip(), nickname_song)
+    if not msg_pure.isdigit():
+        guessed_chart_id = fuzzy_match(msg_pure, nickname_song)
         if guessed_chart_id is None:
-            guessed_chart_id = compare_origin_songname(session.message.content.strip(), song_data)
+            guessed_chart_id = compare_origin_songname(msg_pure, song_data)
     else:
-        guessed_chart_id = session.message.content.strip()
+        guessed_chart_id = msg_pure
 
     if correct_chart_id == guessed_chart_id:
         session.send(

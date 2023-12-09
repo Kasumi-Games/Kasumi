@@ -6,7 +6,7 @@ import schedule
 
 from bridge.session_adder import Command
 from core.event_decorator import OnEvent
-from bridge.utils import rm_1_at
+from bridge.utils import rm_1_at, rm_all_at
 from bridge.config import config
 on_event = OnEvent()
 
@@ -31,7 +31,7 @@ class OnActivator:
                     print('你 session 呢 IndexError')
                     return False
                 if config['bot']['rm_at']:
-                    pure_message = rm_1_at(session.message.content)
+                    pure_message = rm_all_at(session.message.content)
                 for prefix in config['bot']['prefix']:
                     if pure_message.startswith(prefix):
                         pure_message = pure_message.replace(prefix, '', 1)
