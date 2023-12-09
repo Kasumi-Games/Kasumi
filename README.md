@@ -33,7 +33,7 @@ BanGGame Collection
 **dependencies:**
 `python3.10+`
 ```bash
-pip install flask websocket-client PyYAML requests schedule pillow
+pip install flask websocket-client PyYAML requests schedule Pillow bestdori-api fuzzywuzzy
 ```
 
 Bridge实现：
