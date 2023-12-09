@@ -26,19 +26,5 @@ def echo2(session):
         session.send(session.message.content[5:])
 
 
-@on_activator.command('koishi')
-def koishi(session):
-    """
-    发送koishi的logo
-    """
-    if not session.command.args:
-        # 下载https://koishi.chat/logo.png
-        # res = requests.get('https://koishi.chat/logo.png')
-        session.send('梦梦喵')
-        time.sleep(2)
-        session.send('梦梦喵')
-        # 发送图片
-        session.send(h.image('https://koishi.chat/logo.png'))
-
 
 
