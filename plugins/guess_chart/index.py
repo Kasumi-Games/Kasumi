@@ -3,9 +3,10 @@ import random
 from fuzzywuzzy import process
 from typing import List, Dict, Any
 from bestdori import songs
+from bestdori.utils import get_bands_all
 from bestdori.charts import Chart
 
-from bridge.tomorin import on_activator, on_event, h, rm_all_xml, rm_perfix
+from bridge.tomorin import on_activator, on_event, h, rm_all_xml
 from bridge.session_adder import SessionExtension
 
 from .BanGDreamChartRender import render
@@ -105,8 +106,19 @@ def compare_origin_songname(guessed_name: str, song_data: Dict[str, Dict[str, An
     return None
 
 
+def get_value_from_list(song_names: List[str]):
+    return (
+        song_names[3]
+        or song_names[0]
+        or song_names[2]
+        or song_names[1]
+        or song_names[4]
+    )
+
+
 guess_chart_context = {}
 song_data = None
+band_data = None
 nickname_song = read_csv_to_dict("plugins/guess_chart/nickname_song.csv")
 
 diff_num = {
@@ -119,9 +131,11 @@ diff_num = {
 
 
 @on_activator.interval(24 * 3600)
-def refresh_song_data():
+def refresh_data():
     global song_data
+    global band_data
     song_data = songs.get_all(proxy="http://127.0.0.1:7890")
+    band_data = get_bands_all(proxy="http://127.0.0.1:7890")
 
 
 @on_activator.command(["猜谱面", "cpm"])
@@ -141,6 +155,8 @@ def guess_chart(session: SessionExtension):
 
     song_id, song_info = random.choice(list(song_data.items()))
 
+    song_detail = songs.Song(song_id, proxy="http://127.0.0.1:7890")
+
     if song_data[song_id]["difficulty"].get(diff_num["special"]):
         chart_difficulty = random.choice(["expert", "special"])
     else:
@@ -154,24 +170,18 @@ def guess_chart(session: SessionExtension):
         # TODO: 改为渲染不完整的谱面
         img = render(chart.to_list())
 
-    # charts = sep_chart(chart, game_difficulty)
-
-    # chart_images = [render(chart) for chart in charts]
-
     guess_chart_context[session.channel.id] = {
         "chart_id": song_id,
         "chart_difficulty": chart_difficulty,
         "game_difficulty": game_difficulty,
         "song": song_info,
         "chart": chart,
+        "song_detail": song_detail.get_info(),
         "prompt": {
             "level": False,
-            "diff": False,
+            "band": False,
         },
     }
-
-    # for image in chart_images:
-    #     session.send(h.image(image))
 
     session.send(h.image(img))
 
@@ -181,6 +191,8 @@ def handle_answer(session: SessionExtension):
     global guess_chart_context
     global nickname_song
     global song_data
+    global band_data
+
     msg_pure = rm_all_xml(session.message.content)
 
     if session.channel.id not in guess_chart_context:
@@ -194,27 +206,34 @@ def handle_answer(session: SessionExtension):
     level = guess_chart_context[session.channel.id]["song"]["difficulty"][
         diff_num[diff]
     ]["playLevel"]
+    song_name = get_value_from_list(
+        guess_chart_context[session.channel.id]["song"]["musicTitle"]
+    )
 
     if msg_pure in ["bzd", "不知道", "结束猜谱", "结束猜谱面"]:
-        session.send(
-            f"要再试一次吗？\n谱面：{nickname_song[correct_chart_id][0]} "
-            f"{diff.upper()} LV.{level}"
-        )
         guess_chart_context.pop(session.channel.id)
+        session.send(f"要再试一次吗？\n谱面：{song_name} " f"{diff.upper()} LV.{level}")
         return None
 
     if msg_pure in ["提示", "给点提示"]:
         if not guess_chart_context[session.channel.id]["prompt"]["level"]:
             session.send(f"这首曲子是 {level} 级的哦")
             guess_chart_context[session.channel.id]["prompt"]["level"] = True
-        elif not guess_chart_context[session.channel.id]["prompt"]["diff"]:
-            session.send(f"这首曲子是 {diff} 难度的哦")
-            guess_chart_context[session.channel.id]["prompt"]["diff"] = True
+        elif not guess_chart_context[session.channel.id]["prompt"]["band"]:
+            if not band_data:
+                band_data = get_bands_all(proxy="http://127.0.0.1:7890")
+
+            band_id: int = guess_chart_context[session.channel.id]["song_detail"][
+                "bandId"
+            ]
+            band_name = get_value_from_list(band_data[str(band_id)]["bandName"])
+
+            session.send(f"这首曲子是 {band_name} 的哦")
+
+            guess_chart_context[session.channel.id]["prompt"]["band"] = True
         else:
             session.send("已经没有提示啦")
         return None
-
-    # print(guess_chart_context)
 
     if not msg_pure.isdigit():
         guessed_chart_id = fuzzy_match(msg_pure, nickname_song)
@@ -224,13 +243,5 @@ def handle_answer(session: SessionExtension):
         guessed_chart_id = msg_pure
 
     if correct_chart_id == guessed_chart_id:
-        session.send(
-            "回答正确！"
-            f"谱面：{nickname_song[correct_chart_id][0]} "
-            f"{diff.upper()} LV.{level}"
-            # f"{h.image(render(guess_chart_context[session.channel.id]['chart']))}"
-        )
         guess_chart_context.pop(session.channel.id)
-
-    # else:
-    #     session.send("不对哦，再想想吧")
+        session.send("回答正确！" f"谱面：{song_name} " f"{diff.upper()} LV.{level}")
