@@ -50,7 +50,7 @@ class PluginLoader:
         self.loaded_plugins = {}
 
     def load_plugins(self):
-        session = SessionExtension(data_nil)
+        # session = SessionExtension(data_nil)
         for folder in [d for d in os.listdir('./plugins') if os.path.isdir(os.path.join('./plugins', d)) and not d.startswith('__')]:
             # print(f'[load_plugins] 正在加载插件包 [{folder}]')
             module = importlib.import_module(f'plugins.{folder}.index')
@@ -64,9 +64,13 @@ class PluginLoader:
                 ):
                     continue
                 # 这个语句是为了在「不是插件的函数」传递「session」时抛出异常时结束这本次导入
-                try:
-                    obj(session)
-                except:
+                if inspect.signature(obj).parameters:
+                    try:
+                        # 故意传递一个空的 session，在对应插件做了异常处理的情况下，这里不会抛出异常
+                        obj()
+                    except:
+                        continue
+                else:
                     continue
                 if not hasattr(obj, 'enable_feature'):
                     continue
@@ -84,6 +88,7 @@ class PluginLoader:
 
 
 plugin_loader = PluginLoader()
+
 
 
 

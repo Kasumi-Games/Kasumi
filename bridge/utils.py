@@ -44,4 +44,3 @@ def rm_perfix(text):
             break
     return text.strip()
 
-
