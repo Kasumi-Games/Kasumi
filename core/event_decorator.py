@@ -4,7 +4,7 @@ import time
 from threading import Thread
 import schedule
 
-from bridge.session_adder import UserCommand
+from bridge.session_adder import MessageExtension
 # from load_plugins import function_info_list
 
 
@@ -16,8 +16,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'message-created':
                 return func(session)
 
@@ -30,8 +30,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'message-updated':
                 return func(session)
 
@@ -44,8 +44,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'message-deleted':
                 return func(session)
 
@@ -58,8 +58,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'interaction/button':
                 return func(session)
 
@@ -72,8 +72,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'interaction/command':
                 return func(session)
 
@@ -86,8 +86,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-added':
                 return func(session)
 
@@ -100,8 +100,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-updated':
                 return func(session)
 
@@ -114,8 +114,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-removed':
                 return func(session)
 
@@ -128,8 +128,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-request':
                 return func(session)
 
@@ -142,8 +142,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'login-added':
                 return func(session)
 
@@ -156,8 +156,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'login-removed':
                 return func(session)
 
@@ -170,8 +170,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'login-updated':
                 return func(session)
 
@@ -184,8 +184,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-member-added':
                 return func(session)
 
@@ -198,8 +198,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-member-updated':
                 return func(session)
 
@@ -212,8 +212,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-member-removed':
                 return func(session)
 
@@ -226,8 +226,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-member-request':
                 return func(session)
 
@@ -240,8 +240,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'friend-request':
                 return func(session)
 
@@ -254,8 +254,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-role-created':
                 return func(session)
 
@@ -268,8 +268,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-role-updated':
                 return func(session)
 
@@ -282,8 +282,8 @@ class OnEvent:
         '''
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
-            session = args[0]
             inner_wrapper.enable_feature = True
+            session = args[0]
             if session.type == 'guild-role-deleted':
                 return func(session)
 
@@ -291,3 +291,4 @@ class OnEvent:
 
 
 on_event = OnEvent()
+
