@@ -11,9 +11,9 @@ from bridge.session_adder import MessageExtension
 class OnEvent:
     @staticmethod
     def message_created(func):
-        '''
+        """
         当消息被创建时触发。必需资源：channel，message，user。
-        '''
+        """
         @wraps(func)
         def inner_wrapper(*args, **kwargs):
             inner_wrapper.enable_feature = True

@@ -6,72 +6,76 @@ import schedule
 
 from bridge.session_adder import MessageExtension, Function, Command
 from core.event_decorator import OnEvent
-from bridge.utils import rm_1_at, rm_all_at
+from bridge.utils import rm_1_at, rm_all_at, rm_all_xml, rm_perfix
 from bridge.config import config
 on_event = OnEvent()
 
 
 class OnActivator:
-    @staticmethod
-    def command(cmd: (str, list) = None):
-        '''
-        当命令被触发时触发。以 create-message 为底层事件。
-        支持传入字符串列表作为多个触发词。
-        如果没有提供 cmd 参数，则使用装饰的函数名作为命令，且此时不会被help命令识别。
-        '''
-        def decorator(func):
-            # print(f"Function name: {func.__name__}")
-            # print(f"Function docstring: {func.__doc__}")
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                wrapper.enable_feature = True
-                # print(cmd)
-                try:
-                    session = args[0]
-
-                except IndexError:
-                    # print('你 session 呢 IndexError')
-                    return False
-                if config['bot']['rm_at']:
-                    pure_message = rm_all_at(session.message.content)
-                for prefix in config['bot']['prefix']:
-                    if pure_message.startswith(prefix):
-                        pure_message = pure_message.replace(prefix, '', 1)
-                        break
-
-                if session.type != 'message-created':
-                    return False
-
-                # 判断是否传入了命令名
-                command_names = cmd if isinstance(cmd, (list, tuple)) else [cmd]
-                # 如果cmd是函数，或者没有提供cmd，则使用函数名
-                if callable(cmd) or cmd is None:
-                    command_names = [func.__name__]
-                # 给此函数添加自己的指令触发词列表
-                session.function = Function(command_names, '')
-
-                # 检查是否匹配任一命令名
-                for command_name in command_names:
-                    if pure_message.startswith(command_name + ' '):
-                        cmd_list = pure_message.split()
-                        command_args = cmd_list[1:]
-                        text = pure_message.replace(command_name, '', 1)
-                        if text.startswith(' '):
-                            text = text.replace(' ', '', 1)
-                        session.message.command = Command(command_name, command_args, text)
-                        return func(session)
-                    elif pure_message == command_name:
-                        session.message.command = Command(command_name, None, '', )
-                        return func(session)
-                return False
-
-            return wrapper
-
-        # 如果传入的 cmd 是函数，表示没有提供命令名，直接返回装饰器
-        if callable(cmd):
-            return decorator(cmd)
-        else:
-            return decorator  # 否则，返回装饰器函数
+    # @staticmethod
+    # def command(cmd: (str, list) = None):
+    #     '''
+    #     当命令被触发时触发。以 create-message 为底层事件。
+    #     支持传入字符串列表作为多个触发词。
+    #     如果没有提供 cmd 参数，则使用装饰的函数名作为命令，且此时不会被help命令识别。
+    #     '''
+    #     def decorator(func):
+    #         # print(f"Function name: {func.__name__}")
+    #         # print(f"Function docstring: {func.__doc__}")
+    #         @wraps(func)
+    #         def wrapper(*args, **kwargs):
+    #             wrapper.enable_feature = True
+    #             # print(cmd)
+    #             # print()
+    #             try:
+    #                 session = args[0]
+    #                 # print('session', session)
+    #                 # if isinstance(session, dict):
+    #                 #     return False
+    #
+    #             except IndexError:
+    #                 # print('你 session 呢 IndexError')
+    #                 return False
+    #             if config['bot']['rm_at']:
+    #                 pure_message = rm_all_at(session.message.content)
+    #             for prefix in config['bot']['prefix']:
+    #                 if pure_message.startswith(prefix):
+    #                     pure_message = pure_message.replace(prefix, '', 1)
+    #                     break
+    #
+    #             if session.type != 'message-created':
+    #                 return False
+    #
+    #             # 判断是否传入了命令名
+    #             command_names = cmd if isinstance(cmd, (list, tuple)) else [cmd]
+    #             # 如果cmd是函数，或者没有提供cmd，则使用函数名
+    #             if callable(cmd) or cmd is None:
+    #                 command_names = [func.__name__]
+    #             # 给此函数添加自己的指令触发词列表
+    #             session.function = Function(command_names, '')
+    #
+    #             # 检查是否匹配任一命令名
+    #             for command_name in command_names:
+    #                 if pure_message.startswith(command_name + ' '):
+    #                     cmd_list = pure_message.split()
+    #                     command_args = cmd_list[1:]
+    #                     text = pure_message.replace(command_name, '', 1)
+    #                     if text.startswith(' '):
+    #                         text = text.replace(' ', '', 1)
+    #                     session.message.command = Command(command_name, command_args, text)
+    #                     return func(session)
+    #                 elif pure_message == command_name:
+    #                     session.message.command = Command(command_name, None, '', )
+    #                     return func(session)
+    #             else:
+    #                 session.message.command = Command(None, None, '', )
+    #                 return func(session)
+    #         return wrapper
+    #     # # 如果传入的 cmd 是函数，表示没有提供命令名，直接返回装饰器
+    #     if callable(cmd):
+    #         return decorator(cmd)
+    #     else:
+    #         return decorator  # 否则，返回装饰器函数
 
     @staticmethod
     def timer(time_or_times: (str, list)):
