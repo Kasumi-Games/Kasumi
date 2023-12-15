@@ -1,6 +1,7 @@
 from enum import IntEnum
 from typing import Union, Optional
 import re
+import random
 
 from core.config import config
 from core.session_maker import Session, Message
@@ -95,7 +96,8 @@ class SessionExtension(Session):
         if '' == self.message.content and self.type == 'message-created':
             msg = "".join(element['attrs']['content'] for element in self.data['message']['elements'] if element['type'] == 'text')
             self.message.content = msg.strip()  # 空格不需要了
-        self.seq = 0  # 将 seq 定义为实例属性
+        # 随机一个seq
+        self.seq = random.randint(0, 1000000000)
 
     def send(self, message_content: str):
         # 使用实例属性时，直接通过 self 访问
@@ -113,19 +115,18 @@ class SessionExtension(Session):
         if self.function.matched:
             return self
 
-        pure_message = rm_all_at(self.message.content) if config['bot']['rm_at'] else self.message.content
-        for prefix in config['bot']['prefix']:
-            if pure_message.startswith(prefix):
-                pure_message = pure_message.replace(prefix, '', 1)
-                break
-        pure_message = pure_message.strip()
-        command_args = pure_message[1:]
-        command_name = pure_message[0]
+        pure_msg = rm_perfix(self.message.content)
+        pure_msg = rm_all_xml(pure_msg).strip()
+
+        command_name = pure_msg.split()[0]
+        print(f'command_name: {command_name}')
+        print(f'pure_msg: {pure_msg}')
+        # 删掉列表第一个
+        command_args = pure_msg.split()[1:]
+        command_text = pure_msg.replace(command_name, '', 1).strip()
 
         # 先检查cutshort
         if self.function.cutshort != {}:
-            pure_msg = rm_perfix(self.message.content)
-            pure_msg = rm_all_xml(pure_msg)
             # print(pure_msg)
             # 下面的arg是参数，cutshort是缩写
             # 举例 arg 是 '结束游戏'，cutshort 是 'bzd'
@@ -136,31 +137,28 @@ class SessionExtension(Session):
                     if self.function.names[0]:
                         self.function.matched = True
                         # print(self.function.names)
-                        self.message.command = Command(command_name, [pure_msg], '')
+                        self.message.command = Command(command_name, pure_msg.split(), command_text)
                         actions[arg](self)
                         return self
                     else:
-                        self.message.command = Command(command_name, [pure_msg], '')
+                        self.message.command = Command(command_name, pure_msg.split(), command_text)
                         actions[None](self)
                 if cutshort == pure_msg:
                     if self.function.names[0]:
                         self.function.matched = True
                         # print(self.function.names)
-                        self.message.command = Command(command_name, [pure_msg], '')
+                        self.message.command = Command(command_name, pure_msg, '')
                         actions[arg](self)
                         return self
 
         for command_name in self.function.names:
             # print(f'正在检查命令名: {command_name}')
             # print(f'pure_message: {pure_message}')
-            if pure_message.startswith(command_name + ' '):
-                text = pure_message.replace(command_name, '', 1)
-                if text.startswith(' '):
-                    text = text.replace(' ', '', 1)
-                self.message.command = Command(command_name, command_args, text)
+            if pure_msg.startswith(command_name + ' '):
+                self.message.command = Command(command_name, command_args, command_text)
                 break
-            elif pure_message == command_name:
-                self.message.command = Command(command_name, None, '', )
+            elif pure_msg == command_name:
+                self.message.command = Command(command_name, None, '')
                 break
         else:
             # print('没有匹配到命令名')
