@@ -152,7 +152,7 @@ refresh_data()
 @on_event.message_created
 def guess_bang_chart(session: SessionExtension):
     print(session.function.cutshort.cutshort_dict)
-    session.function.register(["猜谱面", "猜谱", "cpmt", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
+    session.function.register(["猜谱面", "猜谱", "cpm", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
     session.function.description = "zhaomaoniu写的猜谱面游戏"  # 功能描述
     session.function.examples.add(None, "开始猜谱面").add("提示", "展示提示").add(
         "结束", "结束游戏"
