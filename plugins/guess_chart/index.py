@@ -249,7 +249,7 @@ def guess_chart(session: SessionExtension):
             "bpm": False,
         },
     }
-    session.send(h.image(img) + "发送/猜谱面 ID/名称 回答\n发送/猜谱面 提示 展示提示\n发送/猜谱面 结束 结束游戏")
+    session.send(h.image(img) + "help: @Kasumi /猜谱面 帮助")
 
 
 def get_msgs(session: SessionExtension):
@@ -299,8 +299,8 @@ def handle_answer(session: SessionExtension):
     if correct_chart_id == guessed_chart_id:
         guess_chart_context.pop(session.channel.id)
         session.send("回答正确！" f"谱面：{song_name} " f"{diff.upper()} LV.{level}")
-    else:
-        session.send("？你回答的什么几把")
+    # else:
+    #     session.send("？你回答的什么几把")
 
 
 def end(session: SessionExtension):
