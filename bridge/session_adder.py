@@ -37,7 +37,7 @@ class Cutshort:
             cutshort_dict = {}
         self.cutshort_dict: dict = cutshort_dict
 
-    def add(self, arg: Optional[str], cutshort: Optional[str] = None):  # 添加参数
+    def add(self, arg: Optional[str | tuple], cutshort: Optional[str | list] = None):  # 添加参数
         self.cutshort_dict[arg] = cutshort
         return self
 
@@ -60,7 +60,7 @@ class Function:
         self.matched: bool = False
 
     def register(self, names: list = None, func: str = None):
-        print(id(self))
+        # print(id(self))
         if func is None:
             frame = inspect.currentframe()
             caller_frame = frame.f_back
@@ -69,15 +69,6 @@ class Function:
         self.func = func
         # print(f'[register] {self.names} -> {self.func}')
         return self
-
-    # def add_method(self, method):
-    #     """动态添加方法到实例，使用父类中的方法名作为属性名."""
-    #     # 获取父类中的方法名
-    #     method_name = [name for name, obj in inspect.getmembers(self.__class__, inspect.isfunction) if obj == method]
-    #     if method_name:
-    #         setattr(self, method_name[0], types.MethodType(method, self))
-    #     else:
-    #         raise ValueError("Method not found in parent class.")
 
 
 class MessageExtension(Message):
@@ -91,6 +82,7 @@ class SessionExtension(Session):
         super().__init__(body)
         self.function: Optional[Function] = Function()
         self.message: Optional[MessageExtension] = MessageExtension(self.data.get('message', {}))
+        self.get_all_help_msg: bool = False
 
         if '' == self.message.content and self.type == 'message-created':
             msg = "".join(element['attrs']['content'] for element in self.data['message']['elements'] if element['type'] == 'text')
@@ -114,18 +106,21 @@ class SessionExtension(Session):
         global str
         if self.function.matched:
             return self
+        if self.get_all_help_msg:
+            self.function.matched = True
+            return self
 
         pure_msg = self.message.content
         pure_msg = rm_all_xml(pure_msg)
         pure_msg = rm_perfix(pure_msg).strip()
 
         command_name = pure_msg.split()[0]
-        print(f'command_name: {command_name}')
+        # print(f'command_name: {command_name}')
         # 删掉列表第一个
         command_args = pure_msg.split()[1:]
-        print(f'command_args: {command_args}')
+        # print(f'command_args: {command_args}')
         command_text = pure_msg.replace(command_name, '', 1).strip()
-        print(f'command_text: {command_text}')
+        # print(f'command_text: {command_text}')
 
         # 先检查cutshort
         if self.function.cutshort != {}:
@@ -135,8 +130,8 @@ class SessionExtension(Session):
             for arg, cutshort in self.function.cutshort.cutshort_dict.items():
                 # print(f'正在检查缩写: {cutshort}')
                 # print(f'pure_msg: {pure_msg}')
-                print(cutshort)
-                print(pure_msg)
+                # print(cutshort)
+                # print(pure_msg)
                 # print(cutshort == pure_msg)
                 if cutshort is None:
                     if self.function.names[0]:
@@ -169,12 +164,12 @@ class SessionExtension(Session):
             # print(f'正在检查命令名: {command_name}')
             # print(f'pure_message: {pure_message}')
             if pure_msg.startswith(function_name + ' '):
-                print(f'匹配到命令名: {function_name}')
-                print(f'command_text!: {command_text}')
+                # print(f'匹配到命令名: {function_name}')
+                # print(f'command_text!: {command_text}')
                 self.message.command = Command(command_name, command_args, command_text)
                 break
             elif function_name == command_name:
-                print(f'匹配到命令名: {function_name}')
+                # print(f'匹配到命令名: {function_name}')
                 self.message.command = Command(command_name, None, '')
                 break
         else:
@@ -214,28 +209,6 @@ class SessionExtension(Session):
                         func(self)
                         return self
 
-
-        '''
-        @on_event.message_created
-def guess_bang_chart(session: SessionExtension):
-    print(session.function.cutshort.cutshort_dict)
-    session.function.register(["猜谱面", "猜谱", "cpm", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
-    session.function.description = "zhaomaoniu写的猜谱面游戏"  # 功能描述
-    session.function.examples.add(None, "开始猜谱面").add('提示', '展示提示').add('结束', '结束游戏')   # 功能示例（参数）
-    (session.function.cutshort
-     .add(('-e', 'end', '结束', 'bzd'), 'bzd')
-     .add(("-t", "tips", "提示", "给点提示"), ['提示', '给点提示']))  # cutshort 回复bot一个值，快捷调用 「指令 + 指定参数」（参数需要和 action 中的参数一致）
-    session.action({
-        None: guess_chart,  # 无参数
-        ('-e', 'end', '结束', 'bzd'): end,
-        ("-t", "tips", "提示", "给点提示"): tips,
-        'su': send_guess_chart_context,
-    }).action(handle_answer)  # action 用于最终执行函数，当参数类型为 dict 时，key 为参数，value 为函数，按照参数匹配执行对应的函数
-    session.function.cutshort.add(None)  # 注意，这里的 None 表示执行action里面的 None 函数，而第二个值没有填，代表任何回复都可以触发
-    session.action({
-        None: handle_answer,  # 无参数
-    })
-'''
         # -h 为参数的情况
         if '-h' in self.message.command.args or '帮助' in self.message.command.args:
             self.function.matched = True
@@ -262,8 +235,6 @@ def guess_bang_chart(session: SessionExtension):
                     output += f'  {self.function.names[0]} {arg.name} => {arg.description}\n'
                 else:
                     output += f'  {self.function.names[0]} => {arg.description}\n'
-            # cutshort
-            print(self.function.cutshort.cutshort_dict)
             if self.function.cutshort.cutshort_dict:
                 output += '快捷调用：\n'
                 for arg, cutshort in self.function.cutshort.cutshort_dict.items():

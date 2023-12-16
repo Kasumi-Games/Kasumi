@@ -189,7 +189,7 @@ def send_guess_chart_context(session: SessionExtension):
     global song_data
     global band_data
 
-    print(session.data)
+    # print(session.data)
 
     if session.channel.id not in guess_chart_context:
         print("没有在猜谱面")
