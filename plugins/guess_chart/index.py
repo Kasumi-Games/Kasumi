@@ -1,16 +1,33 @@
 import csv
 import random
+from PIL import Image
 from fuzzywuzzy import process
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TypedDict
 from bestdori import songs
 from bestdori.utils import get_bands_all
-from bestdori.charts import Chart
+from bestdori.charts import Chart, Statistics
 from bestdori.songs import Song
 
-from bridge.tomorin import on_activator, on_event, h, rm_all_xml, rm_perfix, admin_list
+from bridge.tomorin import on_activator, on_event, h, admin_list
 from bridge.session_adder import SessionExtension
 
-from .BanGDreamChartRender import render
+from .BanGDreamChartRender import render, non_slice_render
+from .BanGDreamChartRender.config import PPS
+
+
+proxy = "http://127.0.0.1:7890"
+# 不需要写 None 即可
+
+
+class GuessChartContext(TypedDict):
+    chart_id: str
+    chart_difficulty: str
+    game_difficulty: str
+    song: Dict[str, Song]
+    chart: Chart
+    chart_statistics: Statistics
+    song_detail: Dict[str, Any]
+    prompt: Dict[str, bool]
 
 
 def read_csv_to_dict(file_path):
@@ -62,42 +79,22 @@ def get_difficulty(args: list):
         return "expert"
 
 
-def sep_chart(chart: Chart, difficulty: str) -> List[List[Dict[str, Any]]]:
-    chart: List[Dict[str, Any]] = chart.to_list()
-    chart_length = len(chart)
+def render_to_slices(chart: list) -> Image.Image:
+    chart_img = non_slice_render(chart)
 
-    if difficulty == "easy":
-        sep_num = 2
-        sep_length = 200
-    elif difficulty == "normal":
-        sep_num = 2
-        sep_length = 100
-    elif difficulty == "hard":
-        sep_num = 2
-        sep_length = 50
-    elif difficulty == "expert":
-        sep_num = 1
-        sep_length = 50
-    else:
-        raise ValueError("Invalid difficulty level")
+    height = chart_img.height
+    # 每个切片展示 5s 的谱面
+    slice_height = PPS * 5
 
-    # 根据 sep_num 随机切割 chart 为不重复的多段
-    sep_points = []
-    sep_range = list(range(chart_length - sep_length))
-    for _ in range(sep_num):
-        sep_point = random.choice(sep_range)
-        sep_points.append(sep_point)
-
-        for i in range(sep_point, sep_point + sep_length):
-            sep_range.remove(i)
-
-    sep_points = sorted(sep_points)
-
-    sep_charts: List[List[Dict[str, Any]]] = []
-    for i in sep_points:
-        sep_charts.append(Chart.normalize(chart[i : i + sep_length]).to_list())
-
-    return sep_charts
+    # 随机抽取三段不重复的部分进行切片
+    slices = Image.new("RGB", (chart_img.width * 3, slice_height), (255, 255, 255, 255))
+    for i in range(3):
+        start = random.randint(0, height - slice_height)
+        slices.paste(
+            chart_img.crop((0, start, chart_img.width, start + slice_height)),
+            (i * chart_img.width, 0),
+        )
+    return slices
 
 
 def compare_origin_songname(guessed_name: str, song_data: Dict[str, Dict[str, Any]]):
@@ -105,6 +102,16 @@ def compare_origin_songname(guessed_name: str, song_data: Dict[str, Dict[str, An
         if guessed_name in data["musicTitle"]:
             return key
     return None
+
+
+def num_to_range(num: int):
+    """将数字转换为区间
+
+    e.g. 233 -> tuple(200, 300)
+    """
+    start = num // 100 * 100
+    end = start + 100
+    return start, end
 
 
 def get_value_from_list(song_names: List[str]):
@@ -117,7 +124,7 @@ def get_value_from_list(song_names: List[str]):
     )
 
 
-guess_chart_context = {}
+guess_chart_context: Dict[str, GuessChartContext] = {}
 song_data = None
 band_data = None
 nickname_song = read_csv_to_dict("plugins/guess_chart/nickname_song.csv")
@@ -135,10 +142,8 @@ diff_num = {
 def refresh_data():
     global song_data
     global band_data
-    # song_data = songs.get_all(proxy="http://127.0.0.1:7890")
-    # band_data = get_bands_all(proxy="http://127.0.0.1:7890")
-    song_data = songs.get_all()
-    band_data = get_bands_all()
+    song_data = songs.get_all(proxy=proxy)
+    band_data = get_bands_all(proxy=proxy)
 
 
 refresh_data()
@@ -147,22 +152,34 @@ refresh_data()
 @on_event.message_created
 def guess_bang_chart(session: SessionExtension):
     print(session.function.cutshort.cutshort_dict)
-    session.function.register(["猜谱面", "猜谱", "cpm", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
+    session.function.register(["猜谱面", "猜谱", "cpmt", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
     session.function.description = "zhaomaoniu写的猜谱面游戏"  # 功能描述
-    session.function.examples.add(None, "开始猜谱面").add('提示', '展示提示').add('结束', '结束游戏')   # 功能示例（参数）
-    (session.function.cutshort
-     .add(('-e', 'end', '结束', 'bzd'), 'bzd')
-     .add(("-t", "tips", "提示", "给点提示"), ['提示', '给点提示']))  # cutshort 回复bot一个值，快捷调用 「指令 + 指定参数」（参数需要和 action 中的参数一致）
-    session.action({
-        None: guess_chart,  # 无参数
-        ('-e', 'end', '结束', 'bzd'): end,
-        ("-t", "tips", "提示", "给点提示"): tips,
-        'su': send_guess_chart_context,
-    }).action(handle_answer)  # action 用于最终执行函数，当参数类型为 dict 时，key 为参数，value 为函数，按照参数匹配执行对应的函数
-    session.function.cutshort.add(None)  # 注意，这里的 None 表示执行action里面的 None 函数，而第二个值没有填，代表任何回复都可以触发
-    session.action({
-        None: handle_answer,  # 无参数
-    })
+    session.function.examples.add(None, "开始猜谱面").add("提示", "展示提示").add(
+        "结束", "结束游戏"
+    )  # 功能示例（参数）
+    (
+        session.function.cutshort.add(("-e", "end", "结束", "bzd"), "bzd").add(
+            ("-t", "tips", "提示", "给点提示"), ["提示", "给点提示"]
+        )
+    )  # cutshort 回复bot一个值，快捷调用 「指令 + 指定参数」（参数需要和 action 中的参数一致）
+    session.action(
+        {
+            None: guess_chart,  # 无参数
+            ("-e", "end", "结束", "bzd"): end,
+            ("-t", "tips", "提示", "给点提示"): tips,
+            "su": send_guess_chart_context,
+        }
+    ).action(
+        handle_answer
+    )  # action 用于最终执行函数，当参数类型为 dict 时，key 为参数，value 为函数，按照参数匹配执行对应的函数
+    session.function.cutshort.add(
+        None
+    )  # 注意，这里的 None 表示执行action里面的 None 函数，而第二个值没有填，代表任何回复都可以触发
+    session.action(
+        {
+            None: handle_answer,  # 无参数
+        }
+    )
 
 
 def send_guess_chart_context(session: SessionExtension):
@@ -198,27 +215,24 @@ def guess_chart(session: SessionExtension):
     game_difficulty: str = get_difficulty(session.message.command.args)
 
     if not song_data:
-        # song_data = songs.get_all(proxy="http://127.0.0.1:7890")
-        song_data = songs.get_all()
+        song_data = songs.get_all(proxy=proxy)
 
     song_id, song_info = random.choice(list(song_data.items()))
 
-    # song_detail = songs.Song(song_id, proxy="http://127.0.0.1:7890")
-    song_detail = songs.Song(song_id)
+    song_detail = songs.Song(song_id, proxy=proxy)
 
     if song_data[song_id]["difficulty"].get(diff_num["special"]):
         chart_difficulty = random.choice(["expert", "special"])
     else:
         chart_difficulty = "expert"
 
-    # chart = Chart.get_chart(song_id, chart_difficulty, proxy="http://127.0.0.1:7890")
-    chart = Chart.get_chart(song_id, chart_difficulty)
+    chart = Chart.get_chart(song_id, chart_difficulty, proxy=proxy)
+    chart_statistics = chart.count()
 
     if song_info["difficulty"][diff_num[chart_difficulty]]["playLevel"] <= 27:
         img = render(chart.to_list())
     else:
-        # TODO: 改为渲染不完整的谱面
-        img = render(chart.to_list())
+        img = render_to_slices(chart.to_list())
 
     guess_chart_context[session.channel.id] = {
         "chart_id": song_id,
@@ -226,17 +240,20 @@ def guess_chart(session: SessionExtension):
         "game_difficulty": game_difficulty,
         "song": song_info,
         "chart": chart,
+        "chart_statistics": chart_statistics,
         "song_detail": song_detail.get_info(),
         "prompt": {
             "level": False,
             "band": False,
+            "notes": False,
+            "bpm": False,
         },
     }
-    session.send(h.image(img) + '发送/猜谱面 ID/名称 回答\n发送/猜谱面 提示 展示提示\n发送/猜谱面 结束 结束游戏')
+    session.send(h.image(img) + "发送/猜谱面 ID/名称 回答\n发送/猜谱面 提示 展示提示\n发送/猜谱面 结束 结束游戏")
 
 
 def get_msgs(session: SessionExtension):
-    '''
+    """
     Args:
         session: SessionExtension
 
@@ -245,7 +262,7 @@ def get_msgs(session: SessionExtension):
         diff: 谱面难度
         level: 谱面等级
         song_name: 歌曲名称
-    '''
+    """
     global guess_chart_context
     global nickname_song
     global song_data
@@ -291,6 +308,9 @@ def end(session: SessionExtension):
     global nickname_song
     global song_data
     global band_data
+    if session.channel.id not in guess_chart_context:
+        return None
+
     correct_chart_id, diff, level, song_name = get_msgs(session)
     guess_chart_context.pop(session.channel.id)
 
@@ -311,14 +331,16 @@ def tips(session: SessionExtension):
     if not guess_chart_context[session.channel.id]["prompt"]["level"]:
         session.send(f"这首曲子是 {level} 级的哦")
         guess_chart_context[session.channel.id]["prompt"]["level"] = True
+    elif not guess_chart_context[session.channel.id]["prompt"]["notes"]:
+        note_num = guess_chart_context[session.channel.id]["chart_statistics"].notes
+        note_num_range = num_to_range(note_num)
+        session.send(f"这首曲子的物量是 {note_num_range[0]} 到 {note_num_range[1]} 哦")
+        guess_chart_context[session.channel.id]["prompt"]["notes"] = True
     elif not guess_chart_context[session.channel.id]["prompt"]["band"]:
         if not band_data:
-            # band_data = get_bands_all(proxy="http://127.0.0.1:7890")
-            band_data = get_bands_all()
+            band_data = get_bands_all(proxy=proxy)
 
-        band_id: int = guess_chart_context[session.channel.id]["song_detail"][
-            "bandId"
-        ]
+        band_id: int = guess_chart_context[session.channel.id]["song_detail"]["bandId"]
         band_name = get_value_from_list(band_data[str(band_id)]["bandName"])
 
         session.send(f"这首曲子是 {band_name} 的哦")
@@ -327,4 +349,3 @@ def tips(session: SessionExtension):
     else:
         session.send("已经没有提示啦")
     return None
-
