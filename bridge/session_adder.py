@@ -112,18 +112,21 @@ class SessionExtension(Session):
 
     def action(self, actions: (dict, callable)):
         # 如果已经匹配，直接返回自身
+        global str
         if self.function.matched:
             return self
 
-        pure_msg = rm_perfix(self.message.content)
-        pure_msg = rm_all_xml(pure_msg).strip()
+        pure_msg = self.message.content
+        pure_msg = rm_all_xml(pure_msg)
+        pure_msg = rm_perfix(pure_msg).strip()
 
         command_name = pure_msg.split()[0]
         print(f'command_name: {command_name}')
-        print(f'pure_msg: {pure_msg}')
         # 删掉列表第一个
         command_args = pure_msg.split()[1:]
+        print(f'command_args: {command_args}')
         command_text = pure_msg.replace(command_name, '', 1).strip()
+        print(f'command_text: {command_text}')
 
         # 先检查cutshort
         if self.function.cutshort != {}:
@@ -133,31 +136,46 @@ class SessionExtension(Session):
             for arg, cutshort in self.function.cutshort.cutshort_dict.items():
                 # print(f'正在检查缩写: {cutshort}')
                 # print(f'pure_msg: {pure_msg}')
+                print(cutshort)
+                print(pure_msg)
+                # print(cutshort == pure_msg)
                 if cutshort is None:
                     if self.function.names[0]:
                         self.function.matched = True
                         # print(self.function.names)
-                        self.message.command = Command(command_name, pure_msg.split(), command_text)
+                        self.message.command = Command(self.function.names[0], pure_msg.split(), pure_msg)  # cutshort导致了这里的args和text一样（消息里不存在指令名，所以参数和text就是pure_msg）
                         actions[arg](self)
                         return self
                     else:
-                        self.message.command = Command(command_name, pure_msg.split(), command_text)
+                        self.message.command = Command(self.function.names[0], pure_msg.split(), pure_msg)
                         actions[None](self)
-                if cutshort == pure_msg:
-                    if self.function.names[0]:
+                elif isinstance(cutshort, str):
+                    if str(cutshort) == pure_msg:
+                        if self.function.names[0]:
+                            self.function.matched = True
+                            # print(self.function.names)
+                            self.message.command = Command(self.function.names[0], pure_msg.split(), pure_msg)
+                            actions[arg](self)
+                            return self
+                elif isinstance(cutshort, list):
+                    # 如果cutshort是列表，则检查列表中的任一元素是否 == pure_msg
+                    if any(item == pure_msg for item in cutshort):
+                        # 如果匹配，则执行对应的函数
                         self.function.matched = True
-                        # print(self.function.names)
-                        self.message.command = Command(command_name, pure_msg, '')
+                        self.message.command = Command(self.function.names[0], pure_msg.split(), pure_msg)
                         actions[arg](self)
                         return self
 
-        for command_name in self.function.names:
+        for function_name in self.function.names:
             # print(f'正在检查命令名: {command_name}')
             # print(f'pure_message: {pure_message}')
-            if pure_msg.startswith(command_name + ' '):
+            if pure_msg.startswith(function_name + ' '):
+                print(f'匹配到命令名: {function_name}')
+                print(f'command_text!: {command_text}')
                 self.message.command = Command(command_name, command_args, command_text)
                 break
-            elif pure_msg == command_name:
+            elif function_name == command_name:
+                print(f'匹配到命令名: {function_name}')
                 self.message.command = Command(command_name, None, '')
                 break
         else:
@@ -169,7 +187,6 @@ class SessionExtension(Session):
             return self
 
         # print(f'命令名: {self.message.command.name}')
-
         # 如果接受参数是函数对象，直接执行
         if callable(actions):
             self.function.matched = True
@@ -197,6 +214,29 @@ class SessionExtension(Session):
                         self.function.matched = True
                         func(self)
                         return self
+
+
+        '''
+        @on_event.message_created
+def guess_bang_chart(session: SessionExtension):
+    print(session.function.cutshort.cutshort_dict)
+    session.function.register(["猜谱面", "猜谱", "cpm", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
+    session.function.description = "zhaomaoniu写的猜谱面游戏"  # 功能描述
+    session.function.examples.add(None, "开始猜谱面").add('提示', '展示提示').add('结束', '结束游戏')   # 功能示例（参数）
+    (session.function.cutshort
+     .add(('-e', 'end', '结束', 'bzd'), 'bzd')
+     .add(("-t", "tips", "提示", "给点提示"), ['提示', '给点提示']))  # cutshort 回复bot一个值，快捷调用 「指令 + 指定参数」（参数需要和 action 中的参数一致）
+    session.action({
+        None: guess_chart,  # 无参数
+        ('-e', 'end', '结束', 'bzd'): end,
+        ("-t", "tips", "提示", "给点提示"): tips,
+        'su': send_guess_chart_context,
+    }).action(handle_answer)  # action 用于最终执行函数，当参数类型为 dict 时，key 为参数，value 为函数，按照参数匹配执行对应的函数
+    session.function.cutshort.add(None)  # 注意，这里的 None 表示执行action里面的 None 函数，而第二个值没有填，代表任何回复都可以触发
+    session.action({
+        None: handle_answer,  # 无参数
+    })
+'''
         # -h 为参数的情况
         if '-h' in self.message.command.args or '帮助' in self.message.command.args:
             self.function.matched = True
@@ -223,6 +263,21 @@ class SessionExtension(Session):
                     output += f'  {self.function.names[0]} {arg.name} => {arg.description}\n'
                 else:
                     output += f'  {self.function.names[0]} => {arg.description}\n'
+            # cutshort
+            print(self.function.cutshort.cutshort_dict)
+            if self.function.cutshort.cutshort_dict:
+                output += '快捷调用：\n'
+                for arg, cutshort in self.function.cutshort.cutshort_dict.items():
+                    if isinstance(cutshort, str):
+                        output += f'  {cutshort} => /{self.function.names[0]} {arg}\n'
+                    elif isinstance(cutshort, list):
+                        for item in cutshort:
+                            output += f'  {item} => /{self.function.names[0]} {arg}\n'
+                    if cutshort is None:
+                        if arg is None:
+                            output += f'  [任意输入] => /{self.function.names[0]} [任意输入]\n'
+                        else:
+                            output += f'  [任意输入] => /{self.function.names[0]} {arg}\n'
 
             output = output.strip()  # 去掉最后的换行符
 

@@ -148,21 +148,17 @@ refresh_data()
 def guess_bang_chart(session: SessionExtension):
     print(session.function.cutshort.cutshort_dict)
     session.function.register(["猜谱面", "猜谱", "cpm", "谱面挑战"])  # 注册函数，抹掉上一个插件带来的属性
-
     session.function.description = "zhaomaoniu写的猜谱面游戏"  # 功能描述
     session.function.examples.add(None, "开始猜谱面").add('提示', '展示提示').add('结束', '结束游戏')   # 功能示例（参数）
-
     (session.function.cutshort
      .add(('-e', 'end', '结束', 'bzd'), 'bzd')
-     .add(("-t", "tips", "提示", "给点提示"), '提示')
-     .add(('-t', 'tips', '提示', '给点提示'), '给点提示'))  # cutshort 回复bot一个值，快捷调用 「指令 + 指定参数」（参数需要和 action 中的参数一致）
-
+     .add(("-t", "tips", "提示", "给点提示"), ['提示', '给点提示']))  # cutshort 回复bot一个值，快捷调用 「指令 + 指定参数」（参数需要和 action 中的参数一致）
     session.action({
         None: guess_chart,  # 无参数
         ('-e', 'end', '结束', 'bzd'): end,
         ("-t", "tips", "提示", "给点提示"): tips,
         'su': send_guess_chart_context,
-    })  # action 用于最终执行函数，当参数类型为 dict 时，key 为参数，value 为函数，按照参数匹配执行对应的函数
+    }).action(handle_answer)  # action 用于最终执行函数，当参数类型为 dict 时，key 为参数，value 为函数，按照参数匹配执行对应的函数
     session.function.cutshort.add(None)  # 注意，这里的 None 表示执行action里面的 None 函数，而第二个值没有填，代表任何回复都可以触发
     session.action({
         None: handle_answer,  # 无参数
