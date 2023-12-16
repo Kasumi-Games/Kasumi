@@ -4,10 +4,9 @@ import time
 from threading import Thread
 import schedule
 
-from bridge.session_adder import MessageExtension, Function, Command
 from core.event_decorator import OnEvent
-from bridge.utils import rm_1_at, rm_all_at, rm_all_xml, rm_perfix
-from bridge.config import config
+
+
 on_event = OnEvent()
 
 
@@ -78,7 +77,7 @@ class OnActivator:
     #         return decorator  # 否则，返回装饰器函数
 
     @staticmethod
-    def timer(time_or_times: (str, list)):
+    def timer(time_or_times: str | list):
         """
         装饰器：在指定的24小时制时间（字符串或字符串列表）循环执行函数
         """

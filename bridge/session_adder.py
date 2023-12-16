@@ -1,6 +1,5 @@
 from enum import IntEnum
-from typing import Union, Optional
-import re
+from typing import Union, Callable, Optional
 import random
 
 from core.config import config
@@ -38,7 +37,7 @@ class Cutshort:
             cutshort_dict = {}
         self.cutshort_dict: dict = cutshort_dict
 
-    def add(self, arg: (str, None), cutshort: (str, None) = None):  # 添加参数
+    def add(self, arg: Optional[str], cutshort: Optional[str] = None):  # 添加参数
         self.cutshort_dict[arg] = cutshort
         return self
 
@@ -110,7 +109,7 @@ class SessionExtension(Session):
             print(f'[ send -> {self.platform}: {self.channel.id} ] ')
         return Api.message_create(self, channel_id=self.channel.id or self.guild.id, content=message_content)
 
-    def action(self, actions: (dict, callable)):
+    def action(self, actions: Union[dict, Callable]):
         # 如果已经匹配，直接返回自身
         global str
         if self.function.matched:
