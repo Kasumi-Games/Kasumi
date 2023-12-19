@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response, render_template
+from flask import Flask
 import json
 import websocket
 import threading
@@ -16,34 +16,11 @@ os.chdir(parent_directory)
 sys.path.append(parent_directory)
 
 
-from session import main
-from server_websocket import WebsocketLink
-from config import config
-from load_plugins import plugin_loader
+from websocket_cli import WebsocketLink
+from bridge.config import config
+from bridge.load_plugins import plugin_loader
 
 app = Flask(__name__)
-
-
-@app.route('/', methods=['GET'])
-def welcome():
-    if config["server"]["webui"]:
-        return render_template('index.html')
-    else:
-        return 'webui close'
-
-
-@app.route('/command', methods=['POST'])
-def web_command():
-    # 处理POST请求的逻辑
-    if request.method == 'POST':
-        # 获取用户提交的数据
-        rpl = request.form.get('command_data')
-        # 在这里执行你的处理逻辑，然后返回相应的响应
-        if rpl == 'plugins':
-            data = plugin_loader.get_loaded_plugins_list()
-            rpl = data
-    # 处理GET请求的逻辑（如果有的话）
-    return f'''{rpl}'''
 
 
 @app.route('/load_plugins', methods=['GET'])
@@ -64,17 +41,6 @@ def websocket_():
         t.start()
     time.sleep(0.1)
     return 'All websockets connected.'
-
-@app.route('/', methods=['POST'])
-def webhook_():
-    try:
-        data = request.json
-        main(data)
-    except:
-        print('测试，来自js')
-        data = json.loads((request.json))
-        main(data)
-    return 'ok'
 
 
 if __name__ == '__main__':
@@ -101,6 +67,7 @@ if __name__ == '__main__':
         t.start()
 
     app.run(host=config["server"]["host"], port=config["server"]["local_port"], debug=config["server"]["reload"])
+
 
 
 

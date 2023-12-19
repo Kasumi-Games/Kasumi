@@ -1,4 +1,4 @@
-from api_request import send_request
+from request import send_request
 
 
 class Api:
