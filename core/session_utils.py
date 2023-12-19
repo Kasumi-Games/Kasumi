@@ -1,7 +1,8 @@
 import re
 import json
 from config import config
-
+from datetime import datetime
+import time
 
 def show_session_log(session):
     # 展示日志
@@ -13,12 +14,14 @@ def show_session_log(session):
     cleaned_text = cleaned_text[0:15] + '...' if len(cleaned_text) > 15 else cleaned_text
     cleaned_text = cleaned_text.replace("\n", " ").replace("\r", " ")
 
-    user = session.user.name if session.user.name != '' else ('U_' + session.user.id)
-    guild = session.guild.name if session.guild.name != '' else ('G_' + session.guild.id)
-    channel = session.channel.name if session.channel.name != '' else ('G_' + session.channel.id)
+    user = session.user.name + f'<{session.user.id}>'
+    guild = session.guild.name + f'<{session.guild.id}>'
+    channel = session.channel.name + f'<{session.channel.id}>'
     place = channel if channel == guild else guild + '->' + channel
+    # 获取24小时制度当前时间
+    msg_time = datetime.fromtimestamp(time.time()).strftime('%H:%M:%S')
     if session.type != 'internal':
-        print(f"[ {session.platform}: {place} ] < {session.type} >（ {user} ）{cleaned_text}")
+        print(f"| {msg_time} | [ {session.platform}: {place} ] < {session.type} >（ {user} ）{cleaned_text}")
 
 
 def show_session_data(data: dict):
