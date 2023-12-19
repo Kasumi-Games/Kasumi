@@ -44,3 +44,12 @@ def rm_perfix(text):
             break
     return text.strip()
 
+
+def rm_perfix_or_empty(text):
+    for prefix in config['bot']['prefix']:
+        if text.startswith(prefix):
+            text = text.replace(prefix, '', 1)
+            return text.strip()
+    else:
+        text = ''
+        return text

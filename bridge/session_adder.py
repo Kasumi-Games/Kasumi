@@ -5,7 +5,7 @@ import random
 from core.config import config
 from core.session_maker import Session, Message
 from core.api import Api
-from bridge.utils import rm_1_at, rm_all_at, rm_all_xml, rm_perfix
+from bridge.utils import rm_1_at, rm_all_at, rm_all_xml, rm_perfix, rm_perfix_or_empty
 import inspect
 import types
 
@@ -112,7 +112,10 @@ class SessionExtension(Session):
 
         pure_msg = self.message.content
         pure_msg = rm_all_xml(pure_msg)
-        pure_msg = rm_perfix(pure_msg).strip()
+        pure_msg = rm_perfix_or_empty(pure_msg).strip()
+        if pure_msg == '':
+            # print('pure_msg == 空')
+            return self
 
         command_name = pure_msg.split()[0]
         # print(f'command_name: {command_name}')

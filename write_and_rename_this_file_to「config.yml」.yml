@@ -2,7 +2,7 @@ bot:
   admin:
     - platform: 'qq'
       admin: []
-  prefix: ['/']  #  指令前缀
+  prefix: ['/', '']  #  指令前缀
   rm_at: true  # 是否删除 @ 机器人的消息
 
 # sever 配置
