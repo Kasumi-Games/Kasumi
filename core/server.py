@@ -44,6 +44,9 @@ def websocket_():
 
 
 if __name__ == '__main__':
+    # 检查是否有log文件夹
+    if not os.path.exists('log'):
+        os.mkdir('log')
     cd = 1
     print(f'[server] [Flask Watcher] reload: {config["server"]["reload"]}')
 

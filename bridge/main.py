@@ -5,6 +5,8 @@ from bridge.session import SessionExtension
 from bridge.utils import show_session_log, show_session_data
 from bridge.load_plugins import plugin_loader
 from bridge.filter import ban_manager
+import bridge.logger
+
 
 function_info_list = []
 
