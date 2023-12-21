@@ -32,6 +32,13 @@ print(ascii_tmr)
 
 # 我们的迷失，从ano酱开始。（saki？
 
+try:
+    subprocess.run(["python", script_directory + '/core/server.py'])
+except:
+    try:
+        print('[Python] 检测到您的系统路径没有Python，正在尝试使用Python3运行')
+        subprocess.run(["python3", script_directory + '/core/server.py'])
+    except:
+        exit(1)
 
-subprocess.run(["python", script_directory + '/core/server.py'])
 
