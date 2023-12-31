@@ -8,8 +8,7 @@ from bestdori.utils import get_bands_all
 from bestdori.charts import Chart, Statistics
 from bestdori.songs import Song
 
-from bridge.tomorin import on_activator, on_event, h, admin_list
-from bridge.session_adder import SessionExtension
+from bridge.tomorin import on_activator, on_event, h, admin_list, SessionExtension
 
 from .BanGDreamChartRender import render, non_slice_render
 from .BanGDreamChartRender.config import PPS
@@ -124,6 +123,11 @@ def get_value_from_list(song_names: List[str]):
     )
 
 
+def filter_song_data(song_data: Dict[str, Dict[str, Any]]):
+    # 如果曲名带 "[FULL]" 就去掉这个曲子
+    return {k: v for k, v in song_data.items() if "[FULL]" not in v["musicTitle"][0]}
+
+
 guess_chart_context: Dict[str, GuessChartContext] = {}
 song_data = None
 band_data = None
@@ -142,7 +146,7 @@ diff_num = {
 def refresh_data():
     global song_data
     global band_data
-    song_data = songs.get_all(proxy=proxy)
+    song_data = filter_song_data(songs.get_all(proxy=proxy))
     band_data = get_bands_all(proxy=proxy)
 
 
@@ -215,7 +219,7 @@ def guess_chart(session: SessionExtension):
     game_difficulty: str = get_difficulty(session.message.command.args)
 
     if not song_data:
-        song_data = songs.get_all(proxy=proxy)
+        song_data = filter_song_data(songs.get_all(proxy=proxy))
 
     song_id, song_info = random.choice(list(song_data.items()))
 
@@ -229,10 +233,14 @@ def guess_chart(session: SessionExtension):
     chart = Chart.get_chart(song_id, chart_difficulty, proxy=proxy)
     chart_statistics = chart.count()
 
-    if song_info["difficulty"][diff_num[chart_difficulty]]["playLevel"] <= 27:
-        img = render(chart.to_list())
-    else:
-        img = render_to_slices(chart.to_list())
+    try:
+        if song_info["difficulty"][diff_num[chart_difficulty]]["playLevel"] <= 27:
+            img = render(chart.to_list())
+        else:
+            img = render_to_slices(chart.to_list())
+    except MemoryError:
+        guess_chart_context.pop(session.channel.id)
+        session.send("发生谱面渲染错误！重新开一把吧")
 
     guess_chart_context[session.channel.id] = {
         "chart_id": song_id,
